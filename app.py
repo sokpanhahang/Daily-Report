@@ -2,7 +2,6 @@ import streamlit as st
 from fpdf import FPDF
 from PIL import Image
 import io
-import os
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="Daily Construction Report", layout="wide", page_icon="🏗️")
@@ -20,7 +19,8 @@ with st.form("report_form"):
         report_date = st.date_input("Report Date")
         prepared_by = st.text_input("Prepared By", "John Smith - Site Supervisor")
     
-    weather = st.selectbox("Weather Conditions", ["Sunny ☀️", "Cloudy ☁️", "Rainy 🌧️", "Windy 💨"])
+    # FIXED: Removed emojis from the dropdown options so the PDF doesn't crash
+    weather = st.selectbox("Weather Conditions", ["Sunny", "Cloudy", "Rainy", "Windy", "Snowy"])
 
     st.subheader("2. Manpower & Progress")
     total_manpower = st.number_input("Total Site Manpower", min_value=0, value=142)
@@ -34,7 +34,7 @@ with st.form("report_form"):
     photos = st.file_uploader("Upload Site Photos (Max 6 for PDF)", type=["jpg", "png", "jpeg"], accept_multiple_files=True)
 
     # SUBMIT BUTTON
-    submitted = st.form_submit_button("📄 Generate PDF Report", type="primary")
+    submitted = st.form_submit_button("Generate PDF Report", type="primary")
 
 # --- PDF GENERATION LOGIC ---
 if submitted:
@@ -122,9 +122,9 @@ if submitted:
 
 # --- SHOW DOWNLOAD BUTTON AFTER GENERATION ---
 if "pdf_bytes" in st.session_state:
-    st.success("✅ PDF Generated Successfully!")
+    st.success("PDF Generated Successfully!")
     st.download_button(
-        label="⬇️ Download Your PDF Report",
+        label="Download Your PDF Report",
         data=st.session_state["pdf_bytes"],
         file_name=st.session_state["pdf_name"],
         mime="application/pdf",
