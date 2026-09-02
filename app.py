@@ -147,7 +147,8 @@ if submitted:
         priority = parts[1] if len(parts) > 1 else "Medium"
         color = (255, 0, 0) if priority.lower() == 'high' else (255, 165, 0)
         pdf.set_text_color(*color)
-        pdf.cell(5, 6, "●")
+        # FIXED: Replaced the fancy bullet point with a standard dash to prevent crashing
+        pdf.cell(5, 6, "-") 
         pdf.set_text_color(0, 0, 0)
         pdf.cell(0, 6, f" {desc} - Priority: {priority}", ln=True)
     pdf.ln(5)
@@ -251,7 +252,8 @@ if submitted:
     safety_lines = parse_lines(safety)
     for line in safety_lines:
         pdf.set_x(105)
-        pdf.cell(5, 6, "✓")
+        # FIXED: Replaced the checkmark with a standard arrow to prevent crashing
+        pdf.cell(5, 6, ">") 
         pdf.cell(85, 6, line, ln=True)
 
     # SAVE AND DOWNLOAD
@@ -266,7 +268,7 @@ if submitted:
 if "pdf_bytes" in st.session_state:
     st.success("✅ 2-Page PDF Generated Successfully!")
     st.download_button(
-        label="⬇️ Download Your PDF Report",
+        label="️ Download Your PDF Report",
         data=st.session_state["pdf_bytes"],
         file_name=st.session_state["pdf_name"],
         mime="application/pdf",
