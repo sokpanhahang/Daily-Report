@@ -19,7 +19,6 @@ with st.form("report_form"):
         report_date = st.date_input("Report Date")
         prepared_by = st.text_input("Prepared By", "John Smith - Site Supervisor")
     
-    # FIXED: Removed emojis from the dropdown options so the PDF doesn't crash
     weather = st.selectbox("Weather Conditions", ["Sunny", "Cloudy", "Rainy", "Windy", "Snowy"])
 
     st.subheader("2. Manpower & Progress")
@@ -115,8 +114,8 @@ if submitted:
             except Exception as e:
                 pdf.cell(0, 6, f"Error loading photo {i+1}", ln=True)
 
-    # SAVE AND DOWNLOAD
-    pdf_output = pdf.output(dest="S").encode("latin1")
+    # SAVE AND DOWNLOAD (FIXED: Removed the extra .encode() step)
+    pdf_output = pdf.output()
     st.session_state["pdf_bytes"] = pdf_output
     st.session_state["pdf_name"] = f"Daily_Report_{report_date}.pdf"
 
