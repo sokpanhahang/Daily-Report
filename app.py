@@ -1,12 +1,10 @@
 import streamlit as st
-from fpdf import FPDF
-from PIL import Image
 import io
 
 # --- PAGE SETUP ---
-st.set_page_config(page_title="Daily Construction Report", layout="wide", page_icon="🏗️")
+st.set_page_config(page_title="Daily Construction Report", layout="wide", page_icon="️")
 st.title("🏗️ Construction Daily Report Generator")
-st.markdown("Fill out the form below to generate a professional 2-page PDF report matching your design.")
+st.markdown("Fill out the form below to generate a beautiful, modern report.")
 
 # --- THE FORM ---
 with st.form("report_form"):
@@ -20,342 +18,260 @@ with st.form("report_form"):
         prepared_by = st.text_input("Prepared By", "John Smith - Site Supervisor")
     
     st.subheader("2. Manpower Cards Data")
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     with col1: apex_manpower = st.number_input("Apex Manpower", value=28)
-    with col2: total_manpower = st.number_input("Total Site Manpower", value=142)
-    with col3: subs_present = st.number_input("Subcontractors Present", value=7)
+    with col2: total_manpower = st.number_input("Total Manpower", value=142)
+    with col3: subs_present = st.number_input("Subcontractors", value=7)
     with col4: dyno_manpower = st.number_input("Dyno Manpower", value=15)
-    progress = st.number_input("Project Progress (%)", value=61)
+    with col5: progress = st.number_input("Progress (%)", value=61)
 
     st.subheader("3. Subcontractor Site Log")
-    st.caption("Format: Company | Trade | Headcount | Time | Work Description (One per line)")
-    sub_log = st.text_area("Subcontractor Log", "Apex Concrete | Structural | 28 | 07:00-17:00 | Foundation pour Grid A\nDyno Electrical | MEP | 15 | 07:00-17:00 | Cable tray installation\nApex Concrete | Structural | 12 | 07:00-17:00 | Cable tray installation")
+    sub_log = st.text_area("Subcontractor Log", "Apex Concrete | Structural | 28 | 07:00-17:00 | Foundation pour Grid A\nDyno Electrical | MEP | 15 | 07:00-17:00 | Cable tray installation")
 
-    st.subheader("4. Critical Issues & Hold Points")
-    st.caption("Format: Issue Description | Priority (High/Medium/Low)")
-    issues = st.text_area("Issues", "Rebar inspection delayed due to rain | High\nMaterial delivery (steel) delayed | High\nBFI #104 pending review | Medium")
+    st.subheader("4. Critical Issues")
+    issues = st.text_area("Issues", "Rebar inspection delayed | High\nMaterial delivery delayed | High\nBFI #104 pending review | Medium")
     issues_resolved = st.number_input("Issues Resolved Count", value=3)
 
     st.subheader("5. Materials & Equipment")
-    st.caption("Format: Item | Quantity/Status")
-    materials = st.text_area("Materials Received", "Rebar | 1 tons\nConcrete | 2 cubic meters\nConcrete | 2 cubic meters")
-    equipment = st.text_area("Equipment Utilization", "Crane | 1 hours\nExcavator | 2 issues\nPoenzer | 1 issues")
+    materials = st.text_area("Materials Received", "Rebar | 1 tons\nConcrete | 2 cubic meters")
+    equipment = st.text_area("Equipment Utilization", "Crane | 1 hours\nExcavator | 2 issues")
 
     st.subheader("6. Safety Report Summary")
-    safety = st.text_area("Safety Checks", "Safety Check for sewing recident.\nSafety Check on tiars and umress.\nSafety Check for nahline pasidents.")
+    safety = st.text_area("Safety Checks", "Safety Check for PPE compliance\nSafety Check on tools and harness\nNo incidents reported today.")
 
     st.subheader("7. Site Photos")
     photos = st.file_uploader("Upload Site Photos (Up to 15 total)", type=["jpg", "png", "jpeg"], accept_multiple_files=True)
 
-    submitted = st.form_submit_button("Generate 2-Page PDF Report", type="primary")
+    submitted = st.form_submit_button("Generate Beautiful Report", type="primary")
 
-# --- PDF GENERATION LOGIC ---
+# --- HTML GENERATION LOGIC ---
 if submitted:
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=False) # We will manually handle pages
-    
-    # Helper function to parse text area into list
+    # Helper to parse text
     def parse_lines(text):
         return [line.strip() for line in text.split('\n') if line.strip()]
 
-    # Helper to draw a card
-    def draw_card(x, y, w, h, title, subtitle, value, footer, bg_color, text_color=(0,0,0)):
-        pdf.set_fill_color(*bg_color)
-        pdf.rect(x, y, w, h, 'F')
-        pdf.set_xy(x+2, y+2)
-        pdf.set_font("Helvetica", "B", 7)
-        pdf.set_text_color(*text_color)
-        pdf.cell(w-4, 4, title)
-        if subtitle:
-            pdf.set_xy(x+2, y+7)
-            pdf.set_font("Helvetica", "", 6)
-            pdf.cell(w-4, 3, subtitle)
-        pdf.set_xy(x+2, y+12)
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(w-4, 8, str(value))
-        if footer:
-            pdf.set_xy(x+2, y+h-8)
-            pdf.set_font("Helvetica", "", 6)
-            pdf.cell(w-4, 4, footer)
+    # Process photos to base64 so they embed in the HTML
+    photo_html_page1 = ""
+    photo_html_page2 = ""
+    
+    if photos:
+        for i, photo in enumerate(photos[:15]):
+            img_bytes = photo.read()
+            import base64
+            img_b64 = base64.b64encode(img_bytes).decode()
+            caption = f"{i+1}. {photo.name[:20]}"
+            
+            photo_card = f'''
+            <div class="photo-card">
+                <img src="data:image/jpeg;base64,{img_b64}" alt="Site Photo">
+                <div class="photo-caption">{caption}</div>
+            </div>'''
+            
+            if i < 5:
+                photo_html_page1 += photo_card
+            else:
+                photo_html_page2 += photo_card
 
-    # ================= PAGE 1 =================
-    pdf.add_page()
-    
-    # 1. Header
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.set_text_color(0, 150, 0) # Green for logo approximation
-    pdf.cell(10, 10, "/\\") # Simple triangle
-    pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(40, 10, "ATLASSIAN")
-    pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 10, f"ABC Construction - Daily Site Report", align="R", ln=True)
-    pdf.ln(5)
-    
-    pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, "Daily Site Report", ln=True)
-    pdf.ln(5)
+    # Process tables
+    def make_table_rows(text):
+        rows = ""
+        for line in parse_lines(text):
+            parts = [p.strip() for p in line.split('|')]
+            cells = "".join([f"<td>{p}</td>" for p in parts])
+            rows += f"<tr>{cells}</tr>"
+        return rows
 
-    # 2. Manpower Cards (5 Cards)
-    card_y = pdf.get_y()
-    card_h = 25
-    draw_card(10, card_y, 36, card_h, "Manpower - Apex", "Manpower: Apex Concrete", str(apex_manpower), "Next: Concrete Pour", (76, 175, 80), (255,255,255))
-    draw_card(50, card_y, 36, card_h, "Total Site Manpower", "", str(total_manpower), "", (245, 245, 245))
-    draw_card(90, card_y, 36, card_h, "Subcontractors Present", "", str(subs_present), "", (245, 245, 245))
-    draw_card(130, card_y, 36, card_h, "Manpower - Dyno", "Manpower: Dyno", str(dyno_manpower), "Dyno Electrical", (245, 245, 245))
+    sub_rows = make_table_rows(sub_log)
+    mat_rows = make_table_rows(materials)
+    eq_rows = make_table_rows(equipment)
     
-    # Progress Card (Approximated)
-    pdf.set_fill_color(245, 245, 245)
-    pdf.rect(170, card_y, 30, card_h, 'F')
-    pdf.set_xy(172, card_y+2)
-    pdf.set_font("Helvetica", "B", 7)
-    pdf.cell(26, 4, "Project Progress")
-    pdf.set_xy(172, card_y+8)
-    pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(26, 8, f"{progress}%")
-    pdf.set_xy(172, card_y+18)
-    pdf.set_font("Helvetica", "", 6)
-    pdf.cell(26, 4, "Daily Progress")
-    
-    pdf.set_y(card_y + card_h + 5)
-
-    # 3. Subcontractor Site Log Table
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 8, "Subcontractor Manpower and Site Log", ln=True)
-    pdf.ln(2)
-    
-    # Table Header
-    pdf.set_font("Helvetica", "B", 8)
-    pdf.set_fill_color(230, 230, 230)
-    pdf.cell(40, 6, "Subcontractor", border=1, fill=True)
-    pdf.cell(30, 6, "Trade", border=1, fill=True)
-    pdf.cell(20, 6, "Headcount", border=1, fill=True)
-    pdf.cell(30, 6, "Start/End Time", border=1, fill=True)
-    pdf.cell(70, 6, "Work Description", border=1, ln=True, fill=True)
-    
-    # Table Rows
-    pdf.set_font("Helvetica", "", 8)
-    sub_lines = parse_lines(sub_log)
-    for line in sub_lines:
-        parts = [p.strip() for p in line.split('|')]
-        if len(parts) >= 5:
-            pdf.cell(40, 6, parts[0], border=1)
-            pdf.cell(30, 6, parts[1], border=1)
-            pdf.cell(20, 6, parts[2], border=1)
-            pdf.cell(30, 6, parts[3], border=1)
-            pdf.cell(70, 6, parts[4], border=1, ln=True)
-
-    pdf.ln(5)
-
-    # 4. Critical Issues
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 8, "Critical Site Issues & Hold Points", ln=True)
-    pdf.set_font("Helvetica", "", 9)
-    pdf.cell(0, 6, f"Issues Resolved: {issues_resolved}", ln=True, align="R")
-    pdf.ln(2)
-    
-    # Priority Bar
-    pdf.set_fill_color(255, 0, 0)
-    pdf.rect(10, pdf.get_y(), 30, 3, 'F')
-    pdf.set_fill_color(255, 165, 0)
-    pdf.rect(40, pdf.get_y(), 30, 3, 'F')
-    pdf.set_fill_color(0, 0, 255)
-    pdf.rect(70, pdf.get_y(), 30, 3, 'F')
-    pdf.set_xy(105, pdf.get_y()-3)
-    pdf.set_font("Helvetica", "", 7)
-    pdf.cell(20, 6, "Priority")
-    pdf.ln(5)
-
-    # Issue Boxes (3 boxes side by side)
-    issue_lines = parse_lines(issues)
-    box_w = 60
-    box_h = 25
-    start_x = 10
-    current_y = pdf.get_y()
-    
-    for i, line in enumerate(issue_lines[:3]):
+    # Process Issues
+    issue_cards = ""
+    for i, line in enumerate(parse_lines(issues)[:3]):
         parts = [p.strip() for p in line.split('|')]
         desc = parts[0]
         priority = parts[1] if len(parts) > 1 else "Medium"
+        color = "#e74c3c" if priority.lower() == 'high' else "#f39c12"
+        issue_cards += f'''
+        <div class="issue-card">
+            <div class="issue-title">Issue {i+1}: {desc[:25]}...</div>
+            <div class="issue-desc">{desc}</div>
+            <div class="issue-priority" style="color: {color};">Priority: {priority}</div>
+        </div>'''
+
+    # THE BEAUTIFUL HTML TEMPLATE
+    html_content = f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <style>
+        @page {{ size: A4; margin: 10mm; }}
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #172B4D; margin: 0; padding: 20px; background: #fff; }}
+        .header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #DEEBFF; padding-bottom: 10px; margin-bottom: 20px; }}
+        .logo {{ color: #0052CC; font-weight: bold; font-size: 18px; display: flex; align-items: center; }}
+        .logo span {{ background: #0052CC; color: white; padding: 2px 6px; border-radius: 4px; margin-right: 8px; }}
+        .title {{ font-size: 24px; font-weight: 600; margin: 10px 0 20px 0; }}
         
-        x_pos = start_x + (i * (box_w + 5))
-        pdf.set_fill_color(245, 245, 245)
-        pdf.rect(x_pos, current_y, box_w, box_h, 'F')
+        /* Cards */
+        .cards-container {{ display: flex; gap: 10px; margin-bottom: 25px; }}
+        .card {{ flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #DFE1E6; background: #FAFBFC; }}
+        .card.green {{ background: #E3FCEF; border-color: #57D9A3; }}
+        .card-title {{ font-size: 11px; color: #5E6C84; font-weight: 600; text-transform: uppercase; }}
+        .card-value {{ font-size: 24px; font-weight: bold; margin: 5px 0; }}
+        .card-sub {{ font-size: 10px; color: #5E6C84; }}
         
-        pdf.set_xy(x_pos+2, current_y+2)
-        pdf.set_font("Helvetica", "B", 8)
-        pdf.cell(box_w-4, 4, f"Issue {i+1}: {desc[:20]}...")
+        /* Tables */
+        .section-title {{ font-size: 16px; font-weight: 600; margin: 20px 0 10px 0; border-bottom: 1px solid #DFE1E6; padding-bottom: 5px; }}
+        table {{ width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }}
+        th {{ background: #F4F5F7; text-align: left; padding: 8px; border: 1px solid #DFE1E6; font-weight: 600; }}
+        td {{ padding: 8px; border: 1px solid #DFE1E6; }}
         
-        pdf.set_xy(x_pos+2, current_y+10)
-        pdf.set_font("Helvetica", "", 7)
-        pdf.multi_cell(box_w-4, 3, desc)
+        /* Issues */
+        .issues-grid {{ display: flex; gap: 10px; margin-bottom: 20px; }}
+        .issue-card {{ flex: 1; background: #FAFBFC; border: 1px solid #DFE1E6; border-radius: 6px; padding: 10px; }}
+        .issue-title {{ font-weight: bold; font-size: 12px; margin-bottom: 5px; }}
+        .issue-desc {{ font-size: 11px; color: #5E6C84; margin-bottom: 8px; }}
+        .issue-priority {{ font-size: 11px; font-weight: bold; }}
         
-        pdf.set_xy(x_pos+2, current_y+box_h-6)
-        pdf.set_font("Helvetica", "B", 7)
-        color = (255, 0, 0) if priority.lower() == 'high' else (255, 165, 0)
-        pdf.set_text_color(*color)
-        pdf.cell(box_w-4, 4, f"Priority: {priority}")
-        pdf.set_text_color(0, 0, 0)
+        /* Photos */
+        .photo-grid {{ display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }}
+        .photo-card {{ border: 1px solid #DFE1E6; border-radius: 6px; overflow: hidden; }}
+        .photo-card img {{ width: 100%; height: 100px; object-fit: cover; }}
+        .photo-caption {{ font-size: 10px; padding: 5px; text-align: center; background: #FAFBFC; }}
         
-    pdf.set_y(current_y + box_h + 5)
+        /* Two Column Layout */
+        .two-col {{ display: flex; gap: 20px; }}
+        .col {{ flex: 1; }}
+        
+        /* Print Button */
+        .print-btn {{ position: fixed; top: 20px; right: 20px; background: #0052CC; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+        .print-btn:hover {{ background: #0747A6; }}
+        
+        @media print {{
+            .print-btn {{ display: none; }}
+            body {{ padding: 0; }}
+            .page-break {{ page-break-before: always; }}
+        }}
+    </style>
+    </head>
+    <body>
+        <button class="print-btn" onclick="window.print()">🖨️ Save as PDF</button>
+        
+        <!-- PAGE 1 -->
+        <div class="header">
+            <div class="logo"><span>▲</span> ATLASSIAN</div>
+            <div style="text-align: right; font-size: 12px; color: #5E6C84;">
+                ABC Construction - Daily Site Report<br>
+                Page 1/2
+            </div>
+        </div>
+        
+        <div class="title">Daily Site Report</div>
+        
+        <div class="cards-container">
+            <div class="card green">
+                <div class="card-title">Manpower - Apex</div>
+                <div class="card-value">{apex_manpower}</div>
+                <div class="card-sub">Next: Concrete Pour</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Total Site Manpower</div>
+                <div class="card-value">{total_manpower}</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Subcontractors Present</div>
+                <div class="card-value">{subs_present}</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Manpower - Dyno</div>
+                <div class="card-value">{dyno_manpower}</div>
+                <div class="card-sub">Dyno Electrical</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Project Progress</div>
+                <div class="card-value" style="color: #00875A;">{progress}%</div>
+                <div class="card-sub">Daily Progress</div>
+            </div>
+        </div>
 
-    # 5. Daily Site Photos (Page 1 - 5 photos)
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 8, "Daily Site Photos & Descriptions", ln=True)
-    pdf.ln(2)
-    
-    if photos:
-        pdf.set_font("Helvetica", "", 7)
-        photo_w = 35
-        photo_h = 25
-        for i, photo in enumerate(photos[:5]):
-            try:
-                img = Image.open(photo)
-                img = img.resize((100, 70), Image.Resampling.LANCZOS)
-                img_byte_arr = io.BytesIO()
-                img.save(img_byte_arr, format='JPEG')
-                img_byte_arr.seek(0)
-                
-                x_pos = 10 + (i * (photo_w + 5))
-                pdf.image(img_byte_arr, x=x_pos, y=pdf.get_y(), w=photo_w, h=photo_h)
-                pdf.set_xy(x_pos, pdf.get_y() + photo_h + 1)
-                pdf.cell(photo_w, 4, f"{i+1}. {photo.name[:15]}...", align="C")
-            except: pass
-        pdf.set_y(pdf.get_y() + photo_h + 10)
+        <div class="section-title">Subcontractor Manpower and Site Log</div>
+        <table>
+            <thead><tr><th>Subcontractor</th><th>Trade</th><th>Headcount</th><th>Start/End Time</th><th>Work Description</th></tr></thead>
+            <tbody>{sub_rows}</tbody>
+        </table>
 
-    # Footer Page 1
-    pdf.set_y(280)
-    pdf.set_font("Helvetica", "", 8)
-    pdf.cell(0, 5, f"A4 Document | Construction Daily Report | Date: {report_date.strftime('%B %d, %Y')}", align="C")
-    pdf.cell(0, 5, "Page 1/1", align="R", ln=True)
+        <div class="section-title">Critical Site Issues & Hold Points <span style="float: right; font-size: 12px; font-weight: normal;">Issues Resolved: {issues_resolved}</span></div>
+        <div class="issues-grid">
+            {issue_cards}
+        </div>
 
+        <div class="section-title">Daily Site Photos & Descriptions</div>
+        <div class="photo-grid">
+            {photo_html_page1}
+        </div>
 
-    # ================= PAGE 2 =================
-    pdf.add_page()
-    
-    # Header Page 2
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.set_text_color(0, 150, 0)
-    pdf.cell(10, 10, "/\\")
-    pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(40, 10, "ATLASSIAN")
-    pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 10, f"ABC Construction - Daily Site Report", align="R", ln=True)
-    pdf.set_font("Helvetica", "", 8)
-    pdf.cell(0, 10, "Page 2/2", align="R", ln=True)
-    pdf.ln(5)
-    
-    pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, "Daily Site Report", ln=True)
-    pdf.ln(5)
+        <!-- PAGE 2 -->
+        <div class="page-break"></div>
+        
+        <div class="header">
+            <div class="logo"><span>▲</span> ATLASSIAN</div>
+            <div style="text-align: right; font-size: 12px; color: #5E6C84;">
+                ABC Construction - Daily Site Report<br>
+                Page 2/2
+            </div>
+        </div>
+        
+        <div class="title">Daily Site Report</div>
 
-    # 1. Additional Photos (Grid 2x5)
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 8, "ADDITIONAL SITE PHOTOS & FIELD OBSERVATIONS", ln=True)
-    pdf.ln(2)
-    
-    if photos and len(photos) > 5:
-        pdf.set_font("Helvetica", "", 7)
-        photo_w = 35
-        photo_h = 25
-        for i, photo in enumerate(photos[5:15]): # Next 10 photos
-            try:
-                img = Image.open(photo)
-                img = img.resize((100, 70), Image.Resampling.LANCZOS)
-                img_byte_arr = io.BytesIO()
-                img.save(img_byte_arr, format='JPEG')
-                img_byte_arr.seek(0)
-                
-                col = i % 5
-                row = i // 5
-                x_pos = 10 + (col * (photo_w + 5))
-                y_pos = pdf.get_y() + (row * (photo_h + 8))
-                
-                pdf.image(img_byte_arr, x=x_pos, y=y_pos, w=photo_w, h=photo_h)
-                pdf.set_xy(x_pos, y_pos + photo_h + 1)
-                pdf.cell(photo_w, 4, f"{i+6}. {photo.name[:10]}...", align="C")
-            except: pass
-        pdf.set_y(pdf.get_y() + (2 * (photo_h + 8)) + 5)
-    else:
-        pdf.set_y(pdf.get_y() + 10)
+        <div class="section-title">ADDITIONAL SITE PHOTOS & FIELD OBSERVATIONS</div>
+        <div class="photo-grid">
+            {photo_html_page2 if photo_html_page2 else '<div style="color: #999; grid-column: span 5; text-align: center; padding: 20px;">No additional photos uploaded.</div>'}
+        </div>
 
-    # 2. Bottom Section: Two Columns
-    col_y = pdf.get_y()
-    
-    # LEFT COLUMN: Materials & Equipment
-    pdf.set_x(10)
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(90, 8, "MATERIALS & EQUIPMENT STATUS", ln=True)
-    pdf.ln(2)
-    
-    # Materials Table
-    pdf.set_font("Helvetica", "B", 8)
-    pdf.set_fill_color(230, 230, 230)
-    pdf.cell(45, 6, "Major Materials Received", border=1, fill=True)
-    pdf.cell(45, 6, "Received", border=1, ln=True, fill=True)
-    
-    pdf.set_font("Helvetica", "", 8)
-    mat_lines = parse_lines(materials)
-    for line in mat_lines:
-        parts = [p.strip() for p in line.split('|')]
-        if len(parts) >= 2:
-            pdf.cell(45, 6, parts[0], border=1)
-            pdf.cell(45, 6, parts[1], border=1, ln=True)
-            
-    pdf.ln(5)
-    
-    # Equipment Table
-    pdf.set_font("Helvetica", "B", 8)
-    pdf.set_fill_color(230, 230, 230)
-    pdf.cell(45, 6, "Key Equipment Utilization", border=1, fill=True)
-    pdf.cell(45, 6, "Utilization", border=1, ln=True, fill=True)
-    
-    pdf.set_font("Helvetica", "", 8)
-    eq_lines = parse_lines(equipment)
-    for line in eq_lines:
-        parts = [p.strip() for p in line.split('|')]
-        if len(parts) >= 2:
-            pdf.cell(45, 6, parts[0], border=1)
-            pdf.cell(45, 6, parts[1], border=1, ln=True)
+        <div class="two-col">
+            <div class="col">
+                <div class="section-title">MATERIALS & EQUIPMENT STATUS</div>
+                <table>
+                    <thead><tr><th colspan="2">Major Materials Received</th></tr></thead>
+                    <tbody>{mat_rows}</tbody>
+                </table>
+                <table>
+                    <thead><tr><th colspan="2">Key Equipment Utilization</th></tr></thead>
+                    <tbody>{eq_rows}</tbody>
+                </table>
+            </div>
+            <div class="col">
+                <div class="section-title">SAFETY REPORT SUMMARY</div>
+                <table>
+                    <thead><tr><th>Safety Check Summary</th></tr></thead>
+                    <tbody>
+                        {"".join([f"<tr><td>✓ {line}</td></tr>" for line in parse_lines(safety)])}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div style="margin-top: 40px; border-top: 1px solid #DFE1E6; padding-top: 10px; font-size: 10px; color: #999; text-align: center;">
+            A4 Document | Construction Daily Report | Date: {report_date.strftime('%B %d, %Y')} | Prepared by {prepared_by}
+        </div>
+    </body>
+    </html>
+    '''
 
-    # RIGHT COLUMN: Safety Report
-    pdf.set_xy(105, col_y)
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(95, 8, "SAFETY REPORT SUMMARY", ln=True)
-    pdf.ln(2)
-    
-    pdf.set_font("Helvetica", "B", 8)
-    pdf.set_fill_color(230, 230, 230)
-    pdf.cell(95, 6, "Safety Check Summary", border=1, fill=True, ln=True)
-    
-    pdf.set_font("Helvetica", "", 8)
-    safety_lines = parse_lines(safety)
-    for line in safety_lines:
-        pdf.cell(5, 6, ">")
-        pdf.cell(90, 6, line, ln=True)
-
-    # Footer Page 2
-    pdf.set_y(280)
-    pdf.set_font("Helvetica", "", 8)
-    pdf.cell(0, 5, f"A4 Document | Construction Daily Report | Date: {report_date.strftime('%B %d, %Y')}", align="C")
-    pdf.cell(0, 5, "Page 2/2", align="R", ln=True)
-
-    # SAVE AND DOWNLOAD
-    pdf_buffer = io.BytesIO()
-    pdf.output(pdf_buffer)
-    pdf_buffer.seek(0)
-    
-    st.session_state["pdf_bytes"] = pdf_buffer.getvalue()
-    st.session_state["pdf_name"] = f"Daily_Report_{project_name}_{report_date}.pdf"
+    # Save HTML to memory
+    html_bytes = html_content.encode('utf-8')
+    st.session_state["html_bytes"] = html_bytes
+    st.session_state["html_name"] = f"Report_{project_name}_{report_date}.html"
 
 # --- SHOW DOWNLOAD BUTTON ---
-if "pdf_bytes" in st.session_state:
-    st.success("✅ 2-Page PDF Generated Successfully!")
+if "html_bytes" in st.session_state:
+    st.success("✅ Beautiful Report Generated!")
+    st.info("👇 **How to get your PDF:** Download the HTML file below, open it in Chrome/Edge, and click the blue **'Save as PDF'** button at the top right!")
+    
     st.download_button(
-        label="Download Your PDF Report",
-        data=st.session_state["pdf_bytes"],
-        file_name=st.session_state["pdf_name"],
-        mime="application/pdf",
+        label="⬇️ Download Report File",
+        data=st.session_state["html_bytes"],
+        file_name=st.session_state["html_name"],
+        mime="text/html",
         type="primary"
     )
