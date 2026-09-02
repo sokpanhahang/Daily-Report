@@ -5,7 +5,7 @@ import io
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="Daily Construction Report", layout="wide", page_icon="🏗️")
-st.title("🏗️ Construction Daily Report Generator")
+st.title("️ Construction Daily Report Generator")
 st.markdown("Fill out the form below. When you click generate, you will get a professional PDF.")
 
 # --- THE FORM ---
@@ -114,9 +114,12 @@ if submitted:
             except Exception as e:
                 pdf.cell(0, 6, f"Error loading photo {i+1}", ln=True)
 
-    # SAVE AND DOWNLOAD (FIXED: Removed the extra .encode() step)
-    pdf_output = pdf.output()
-    st.session_state["pdf_bytes"] = pdf_output
+    # SAVE AND DOWNLOAD (FIXED: Using BytesIO to guarantee Streamlit accepts the file)
+    pdf_buffer = io.BytesIO()
+    pdf.output(pdf_buffer)
+    pdf_buffer.seek(0)
+    
+    st.session_state["pdf_bytes"] = pdf_buffer.getvalue()
     st.session_state["pdf_name"] = f"Daily_Report_{report_date}.pdf"
 
 # --- SHOW DOWNLOAD BUTTON AFTER GENERATION ---
